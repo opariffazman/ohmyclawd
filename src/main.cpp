@@ -40,6 +40,7 @@ uint8_t spriteAnim = 0;
 unsigned long lastSpriteFrame = 0;
 bool dynamicSprite = true;
 uint8_t displayRotation = 0;
+bool displayInverted = true;
 
 int usageSession = 0;
 int usageWeekly = 0;
@@ -151,20 +152,21 @@ void checkOTA();
 
 void setup() {
   Serial.begin(115200);
-  tft.init();
-  tft.invertDisplay(true);
-  display_pm::init(prefs);
-  touchSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
-  ts.begin(touchSPI);
-
   prefs.begin("ohmyclawd", false);
   daemonUrl = prefs.getString("url", "http://ohmyclawd.local:8787");
   daemonToken = prefs.getString("token", "");
   String tzStr = prefs.getString("tz", "UTC-8");
   dynamicSprite = prefs.getBool("dyn_spr", true);
   displayRotation = prefs.getUChar("rot", 0);
+  displayInverted = prefs.getBool("inverted", true);
   if (displayRotation != 0 && displayRotation != 2) displayRotation = 0;
   prefs.end();
+
+  tft.init();
+  tft.invertDisplay(displayInverted);
+  display_pm::init(prefs);
+  touchSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
+  ts.begin(touchSPI);
 
   tft.setRotation(displayRotation);
   ts.setRotation(0);
