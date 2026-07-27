@@ -7,6 +7,7 @@
 
 extern bool dynamicSprite;
 extern uint8_t displayRotation;
+extern bool displayInverted;
 extern TFT_eSPI tft;
 
 namespace settings_ui {
@@ -20,7 +21,7 @@ static bool          dirty             = false; // unsaved changes
 
 // Pending values (edited but not yet saved)
 static uint8_t  pBri, pQhStart, pQhEnd, pQhMode, pCycSec, pRotation;
-static bool     pDynSprite;
+static bool     pDynSprite, pInverted;
 
 // Layout constants.
 static constexpr int HEADER_Y_TOP    = 2;
@@ -30,7 +31,7 @@ static constexpr int ROW_H           = 28;
 static constexpr int LABEL_X         = 15;
 static constexpr int VALUE_X         = 225;
 static constexpr int RULE_INDENT     = 5;
-static constexpr int NUM_ROWS        = 9;
+static constexpr int NUM_ROWS        = 10;
 
 inline int rowY(int idx) { return ROW0_Y + idx * ROW_H; }
 
@@ -51,6 +52,7 @@ inline String cycLabel() {
 }
 inline const char* sprModeLabel() { return pDynSprite ? "DYNAMIC" : "FREE"; }
 inline const char* orientLabel() { return pRotation == 0 ? "NORMAL" : "FLIPPED"; }
+inline const char* invertLabel() { return pInverted ? "ON" : "OFF"; }
 
 inline String qhRangeStr() {
   char buf[16];
@@ -85,7 +87,7 @@ inline void handleTap(TFT_eSPI& tft, int touchY, int touchX) {
   int row = rowFromY(touchY);
   if (row < 0) return;
 
-  if (row != 7) { resetActive = false; resetFilledPx = 0; }
+  if (row != 8) { resetActive = false; resetFilledPx = 0; }
 
   switch (row) {
     case 0: case 1: case 2: case 4:
@@ -106,9 +108,14 @@ inline void handleTap(TFT_eSPI& tft, int touchY, int touchX) {
       flashRow(tft, 6, "ORIENTATION", String(orientLabel()));
       break;
     case 7:
-      break; // hold-only reset
+      pInverted = !pInverted;
+      dirty = true;
+      flashRow(tft, 7, "INVERT COLORS", String(invertLabel()));
+      break;
     case 8:
-      if (dirty) { flashRow(tft, 8, "SAVE", "SAVED!"); save(); }
+      break; // hold-only reset
+    case 9:
+      if (dirty) { flashRow(tft, 9, "SAVE", "SAVED!"); save(); }
       break;
   }
   needsFullRedraw = true;
@@ -229,7 +236,7 @@ inline void handleHoldTick(TFT_eSPI& tft, int touchY, int touchX, unsigned long 
       sliderLastVal = sliderValForRow(row);
       drawSliderBar(tft, row);
     }
-  } else if (row == 7) {
+  } else if (row == 8) {
     resetActive = true;
     resetHoldStartMs = millis() - elapsedMs;
     sliderRow = -1;
@@ -277,6 +284,7 @@ inline void enter() {
   pCycSec = display_pm::cycSec;
   pDynSprite = dynamicSprite;
   pRotation = displayRotation;
+  pInverted = displayInverted;
 }
 
 inline void exit() {
@@ -295,11 +303,14 @@ inline void save() {
   display_pm::setCycle(pCycSec);
   dynamicSprite = pDynSprite;
   displayRotation = pRotation;
+  displayInverted = pInverted;
   Preferences p; p.begin("ohmyclawd", false);
   p.putBool("dyn_spr", pDynSprite);
   p.putUChar("rot", displayRotation);
+  p.putBool("inverted", displayInverted);
   p.end();
   tft.setRotation(displayRotation);
+  tft.invertDisplay(displayInverted);
   display_pm::previewActive = false;
   dirty = false;
 }
@@ -329,9 +340,10 @@ inline void render(TFT_eSPI& tft, bool fullRedraw) {
     drawRow(tft, 4, "AUTO-CYCLE *", cycLabel(), false);
     drawRow(tft, 5, "SPRITE MODE", String(sprModeLabel()), false);
     drawRow(tft, 6, "ORIENTATION", String(orientLabel()), false);
+    drawRow(tft, 7, "INVERT COLORS", String(invertLabel()), false);
 
     if (resetActive) {
-      int y = rowY(7);
+      int y = rowY(8);
       tft.fillRect(0, y, 240, ROW_H - 1, TFT_BLACK);
       tft.fillRect(0, y, resetFilledPx, ROW_H - 1, TFT_ORANGE);
       tft.setTextSize(1);
@@ -342,11 +354,11 @@ inline void render(TFT_eSPI& tft, bool fullRedraw) {
       tft.drawString("hold...", VALUE_X, y + 8, 1);
       tft.drawFastHLine(RULE_INDENT, y + ROW_H - 1, 240 - 2 * RULE_INDENT, TFT_DARKGREY);
     } else {
-      drawRow(tft, 7, "RESET", "hold 3s", false);
+      drawRow(tft, 8, "RESET", "hold 3s", false);
     }
 
     // SAVE button — highlighted orange when dirty
-    int sy = rowY(8);
+    int sy = rowY(9);
     if (dirty) {
       tft.fillRect(0, sy, 240, ROW_H - 1, TFT_ORANGE);
       tft.setTextSize(1); tft.setTextColor(TFT_BLACK, TFT_ORANGE);

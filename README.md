@@ -136,6 +136,7 @@ Reach via swipe or nav buttons (auto-cycle skips settings).
 | AUTO-CYCLE * | hold-drag | 5–250s interval, 0 = OFF |
 | SPRITE MODE | tap | DYNAMIC / FREE |
 | ORIENTATION | tap | NORMAL / FLIPPED |
+| INVERT COLORS | tap | ON / OFF |
 | RESET | hold 3s | Clears WiFi + settings, reboots |
 | SAVE | tap | Persist to NVS |
 
