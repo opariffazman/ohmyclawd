@@ -160,7 +160,7 @@ curl -fsSL https://raw.githubusercontent.com/opariffazman/ohmyclawd/master/insta
 
 ## How It Works
 
-Daemon reads `~/.claude/.credentials.json` (auto-created by Claude Code auth). Makes lightweight API requests, reads rate-limit response headers for session/weekly usage %. No messages sent or read — headers only.
+Daemon reads Claude Code OAuth credentials. It uses `~/.claude/.credentials.json` where present and, on macOS, falls back to the `Claude Code-credentials` login Keychain item used by current Claude Code releases. Makes lightweight API requests, reads rate-limit response headers for session/weekly usage %. No messages sent or read — headers only.
 
 ## Credits
 
