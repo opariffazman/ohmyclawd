@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -16,10 +15,13 @@ func main() {
 	listen := getenv("OHMYCLAWD_LISTEN", "127.0.0.1:8787")
 	token := getenv("OHMYCLAWD_TOKEN", "")
 	probeInterval := getenvDur("OHMYCLAWD_PROBE_INTERVAL", 60*time.Second)
-	credsPath := getenv("OHMYCLAWD_CREDS_PATH", defaultCredsPath())
 	anthropicURL := getenv("OHMYCLAWD_ANTHROPIC_URL", "https://api.anthropic.com/v1/messages")
 	fakeMode := flag.Bool("fake", false, "serve a scripted Usage curve, no Anthropic calls")
 	flag.Parse()
+	loadCreds := LoadDefaultCreds
+	if credsPath := os.Getenv("OHMYCLAWD_CREDS_PATH"); credsPath != "" {
+		loadCreds = func() (*Creds, error) { return LoadCreds(credsPath) }
+	}
 
 	state := NewState()
 	metrics := NewMetrics()
@@ -35,7 +37,7 @@ func main() {
 		go runFake(ctx, state)
 		log.Printf("ohmyclawd-daemon listening on %s (fake mode)", listen)
 	} else {
-		creds, err := LoadCreds(credsPath)
+		creds, err := loadCreds()
 		if err != nil {
 			log.Fatalf("credentials: %v", err)
 		}
@@ -49,7 +51,7 @@ func main() {
 			Base:        probeInterval,
 			RateLimited: 5 * time.Minute,
 			Backoff:     []time.Duration{60 * time.Second, 120 * time.Second, 240 * time.Second, 480 * time.Second, 600 * time.Second},
-			ReloadCreds: func() (*Creds, error) { return LoadCreds(credsPath) },
+			ReloadCreds: loadCreds,
 		}
 		go RunLoop(ctx, prober, state, metrics, cfg)
 		log.Printf("ohmyclawd-daemon listening on %s (probing %s every %s)", listen, anthropicURL, probeInterval)
@@ -70,14 +72,6 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 	_ = srv.Shutdown(shutdownCtx)
-}
-
-func defaultCredsPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ".credentials.json"
-	}
-	return filepath.Join(home, ".claude", ".credentials.json")
 }
 
 func getenv(k, d string) string {

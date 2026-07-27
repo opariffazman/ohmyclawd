@@ -16,7 +16,7 @@ curl -fsSL https://raw.githubusercontent.com/opariffazman/ohmyclawd/master/insta
 sudo OHMYCLAWD_USER=youruser ./install.sh
 ```
 
-Builds static binary → `/usr/local/bin/ohmyclawd-daemon`. Installs systemd unit. Runs as target user to read `~/.claude/.credentials.json`.
+Builds static binary → `/usr/local/bin/ohmyclawd-daemon`. Installs systemd unit. Runs as target user to read `~/.claude/.credentials.json`; on macOS, current Claude Code credentials are read from the login Keychain automatically.
 
 ## Config
 
@@ -27,7 +27,7 @@ Env vars on systemd unit. Edit `/etc/systemd/system/ohmyclawd-daemon.service`, t
 | `OHMYCLAWD_LISTEN` | `127.0.0.1:8787` | Bind address. `:8787` for LAN |
 | `OHMYCLAWD_TOKEN` | *(empty)* | Bearer token for `/usage` and `/metrics` |
 | `OHMYCLAWD_PROBE_INTERVAL` | `60s` | Poll frequency |
-| `OHMYCLAWD_CREDS_PATH` | `~/.claude/.credentials.json` | OAuth creds path |
+| `OHMYCLAWD_CREDS_PATH` | legacy file path, otherwise macOS Keychain fallback | OAuth creds path |
 | `OHMYCLAWD_ANTHROPIC_URL` | `https://api.anthropic.com/v1/messages` | API endpoint |
 
 ### Access modes
